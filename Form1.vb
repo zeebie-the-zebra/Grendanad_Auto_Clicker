@@ -40,7 +40,18 @@ Public Class Form1
     Const MOUSEEVENTF_LEFTUP As UInteger = &H4
     Const MOUSEEVENTF_RIGHTDOWN As UInteger = &H8
     Const MOUSEEVENTF_RIGHTUP As UInteger = &H10
+    Private Const WM_LBUTTONDOWN As Integer = &H201
+    Private Const WM_LBUTTONUP As Integer = &H202
+    Private Const WM_MBUTTONDOWN As Integer = &H207
+    Private Const WM_MBUTTONUP As Integer = &H208
+    Private Const MK_MBUTTON As Integer = &H10
+    Private Const MOUSEEVENTF_MOVE As UInteger = &H1
+    Private Const KEYEVENTF_EXTENDEDKEY As Integer = &H1
+    Private Const KEYEVENTF_KEYUP As Integer = &H2
 
+    <DllImport("user32.dll")>
+    Private Shared Sub keybd_event(bVk As Byte, bScan As Byte, dwFlags As Integer, dwExtraInfo As Integer)
+    End Sub
 
     <DllImport("user32")>
     Public Shared Function FindWindow(ByVal lpClassName As String,
@@ -62,6 +73,18 @@ Public Class Form1
                                      ByVal Y As Int32) As Int32
     End Function
 
+    ' Import required WinAPI functions
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function SetForegroundWindow(ByVal hWnd As IntPtr) As <MarshalAs(UnmanagedType.Bool)> Boolean
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function SendMessage(ByVal hWnd As IntPtr, ByVal Msg As UInteger, ByVal wParam As IntPtr, ByVal lParam As IntPtr) As IntPtr
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function ReleaseCapture() As <MarshalAs(UnmanagedType.Bool)> Boolean
+    End Function
 
 
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
@@ -79,6 +102,21 @@ Public Class Form1
         ImageCapture()
         Dim screenshot As Bitmap = CType(PictureBox1.Image, Bitmap)
         ProcessImage(Target1, Target2)
+
+        Dim x As Integer, y As Integer
+        x = Label8.Text
+        y = Label9.Text
+
+        While x = 0 AndAlso y = 0
+            RotateCamera()
+            ImageCapture()
+            ProcessImage(Target1, Target2)
+            x = Label8.Text
+            y = Label9.Text
+            ' Sleep for 2 seconds (2000 milliseconds)
+            Thread.Sleep(2000)
+        End While
+
         MouseMoveAndClick()
         MouseMoveAndClick()
     End Sub
@@ -94,16 +132,42 @@ Public Class Form1
         Timer1.Stop()
     End Sub
 
+    Public Sub RotateCamera()
+        ' Get the handle of the Chrome window
+        Dim chromeWindowHandle As IntPtr = FindChromeWindow()
+
+        ' Check if Chrome window handle is found
+        If chromeWindowHandle <> IntPtr.Zero Then
+            ' Set Chrome window as the active window
+            SetForegroundWindow(chromeWindowHandle)
+
+            ' Randomly choose between A and D keys
+            Dim random As New Random()
+            Dim key As Integer = If(random.Next(2) = 0, Keys.A, Keys.D)
+
+            ' Press and hold the randomly chosen key
+            keybd_event(CByte(key), 0, KEYEVENTF_EXTENDEDKEY Or 0, 0)
+
+            ' Sleep for 2 seconds (2000 milliseconds)
+            Thread.Sleep(2000)
+
+            ' Release the key
+            keybd_event(CByte(key), 0, KEYEVENTF_EXTENDEDKEY Or KEYEVENTF_KEYUP, 0)
+        End If
+    End Sub
 
     Private stopLoop As Boolean = False
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-
+        stopLoop = False
         StartLoop()
     End Sub
 
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
         stopLoop = True
+        PictureBox1.Image.Dispose()
+        PictureBox1.Image = Nothing
+        MsgBox("clicker stopped")
     End Sub
 
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
@@ -156,8 +220,10 @@ Public Class Form1
     End Sub
 
     Private Sub Button6_Click(sender As Object, e As EventArgs) Handles PresetGoblin.Click
-        Label3.ForeColor = Color.FromArgb(88, 147, 33)
-        PictureBox2.BackColor = Color.FromArgb(88, 147, 33)
+        Label3.ForeColor = Color.FromArgb(239, 208, 54)
+        PictureBox2.BackColor = Color.FromArgb(239, 208, 54)
+        Label4.ForeColor = Color.FromArgb(102, 145, 10)
+        PictureBox3.BackColor = Color.FromArgb(102, 145, 10)
     End Sub
 
 
@@ -332,5 +398,12 @@ Public Class Form1
         PictureBox2.BackColor = Color.FromArgb(138, 230, 0)
         Label4.ForeColor = Color.FromArgb(152, 251, 0)
         PictureBox3.BackColor = Color.FromArgb(152, 251, 0)
+    End Sub
+
+    Private Sub Button5_Click_2(sender As Object, e As EventArgs) Handles Button5.Click
+        Label3.ForeColor = Color.FromArgb(0, 80, 200)
+        PictureBox2.BackColor = Color.FromArgb(0, 80, 200)
+        Label4.ForeColor = Color.FromArgb(0, 0, 0)
+        PictureBox3.BackColor = Color.FromArgb(0, 0, 0)
     End Sub
 End Class

@@ -54,6 +54,7 @@ Partial Class Form1
         Me.PresetGreenSlime = New System.Windows.Forms.Button()
         Me.Label12 = New System.Windows.Forms.Label()
         Me.Label13 = New System.Windows.Forms.Label()
+        Me.Button5 = New System.Windows.Forms.Button()
         Me.StatusStrip1.SuspendLayout()
         Me.Panel1.SuspendLayout()
         CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -302,13 +303,23 @@ Partial Class Form1
         Me.Label13.Name = "Label13"
         Me.Label13.Size = New System.Drawing.Size(69, 15)
         Me.Label13.TabIndex = 29
-        Me.Label13.Text = "Version 0.01"
+        Me.Label13.Text = "Version 0.02"
+        '
+        'Button5
+        '
+        Me.Button5.Location = New System.Drawing.Point(102, 197)
+        Me.Button5.Name = "Button5"
+        Me.Button5.Size = New System.Drawing.Size(68, 39)
+        Me.Button5.TabIndex = 30
+        Me.Button5.Text = "Blue Frogs"
+        Me.Button5.UseVisualStyleBackColor = True
         '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1006, 561)
+        Me.Controls.Add(Me.Button5)
         Me.Controls.Add(Me.Label13)
         Me.Controls.Add(Me.Label12)
         Me.Controls.Add(Me.PresetGreenSlime)
@@ -379,4 +390,5 @@ Partial Class Form1
     Friend WithEvents PresetGreenSlime As Button
     Friend WithEvents Label12 As Label
     Friend WithEvents Label13 As Label
+    Friend WithEvents Button5 As Button
 End Class
