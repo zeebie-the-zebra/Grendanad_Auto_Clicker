@@ -8,3 +8,8 @@ Then parrelle processes the image to search for the pixel color of the mob,
 then it auto clicks on the location of the mob.
 
 ![Alt text](https://i.imgur.com/MSQpAPX.png)
+
+Version 0.03
+![Alt text](https://i.imgur.com/GrLqoGC.png)
+
+
