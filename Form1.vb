@@ -1,14 +1,9 @@
-﻿Imports System.Configuration
-Imports System.Drawing.Design
-Imports System.Drawing.Imaging
-Imports System.Reflection
-Imports System.Runtime.InteropServices
-Imports System.Threading
-Imports Microsoft.VisualBasic.Devices
-Imports System.Diagnostics
+﻿Imports System.Drawing.Imaging
 Imports System.IO
-Imports System.Threading.Tasks
+Imports System.Runtime.InteropServices
 Imports System.Text
+Imports System.Threading
+Imports AForge.Imaging
 
 Public Class Form1
 
@@ -118,8 +113,83 @@ Public Class Form1
         End While
 
         MouseMoveAndClick()
-        MouseMoveAndClick()
+        'MouseMoveAndClick()
     End Sub
+
+    Private Sub ImageRecogniziton()
+        ' Assuming you have a captured screenshot stored in a variable called 'gameScreenshot' of type Bitmap
+        Dim gameScreenshot As Bitmap = CType(PictureBox1.Image, Bitmap)
+        ' Resize the image if needed
+        Dim newWidth As Integer, newHeight As Integer
+        newWidth = 1440
+        newHeight = 810
+
+        Dim resizedImage As Bitmap = ResizeImage(gameScreenshot, New Size(newWidth, newHeight))
+
+        ' Convert the image to grayscale
+        Dim grayscaleImage As Bitmap = ConvertToGrayscale(resizedImage)
+
+        ' Save the captured screenshot as a template image
+        SaveTemplateImage(grayscaleImage)
+    End Sub
+
+    Private Sub SaveTemplateImage(ByVal image As Bitmap)
+        Dim templateFileName As String = "template.png"
+        Dim currentDirectory As String = Directory.GetCurrentDirectory()
+        Dim templateFilePath As String = Path.Combine(currentDirectory, templateFileName)
+
+        ' Check if the template file already exists
+        If File.Exists(templateFilePath) Then
+            Dim templateNumber As Integer = 1
+            Dim newTemplateFilePath As String
+
+            ' Increment the template number until a unique filename is found
+            Do
+                Dim newFileName As String = $"template{templateNumber}.png"
+                newTemplateFilePath = Path.Combine(currentDirectory, newFileName)
+                templateNumber += 1
+            Loop While File.Exists(newTemplateFilePath)
+
+            ' Save the new template with the incremented number
+            image.Save(newTemplateFilePath, ImageFormat.Png)
+        Else
+            ' Save the grayscale image as the initial template
+            image.Save(templateFilePath, ImageFormat.Png)
+        End If
+
+    End Sub
+
+    ' Function to resize the image while maintaining aspect ratio
+    Private Function ResizeImage(ByVal image As Bitmap, ByVal newSize As Size) As Bitmap
+        Dim ratioX As Double = CDbl(newSize.Width) / image.Width
+        Dim ratioY As Double = CDbl(newSize.Height) / image.Height
+        Dim ratio As Double = Math.Min(ratioX, ratioY)
+
+        Dim newWidth As Integer = CInt(image.Width * ratio)
+        Dim newHeight As Integer = CInt(image.Height * ratio)
+
+        Dim newImage As New Bitmap(newWidth, newHeight)
+        Using graphics As Graphics = Graphics.FromImage(newImage)
+            graphics.DrawImage(image, 0, 0, newWidth, newHeight)
+        End Using
+
+        Return newImage
+    End Function
+
+    ' Function to convert the image to grayscale
+    Private Function ConvertToGrayscale(ByVal image As Bitmap) As Bitmap
+        Dim grayscaleImage As New Bitmap(image.Width, image.Height)
+
+        For y As Integer = 0 To image.Height - 1
+            For x As Integer = 0 To image.Width - 1
+                Dim pixel As Color = image.GetPixel(x, y)
+                Dim grayScale As Integer = CInt(pixel.R * 0.299 + pixel.G * 0.587 + pixel.B * 0.114)
+                grayscaleImage.SetPixel(x, y, Color.FromArgb(grayScale, grayScale, grayScale))
+            Next
+        Next
+
+        Return grayscaleImage
+    End Function
 
     Private Sub StartLoop()
         stopLoop = False
@@ -405,5 +475,153 @@ Public Class Form1
         PictureBox2.BackColor = Color.FromArgb(0, 80, 200)
         Label4.ForeColor = Color.FromArgb(0, 0, 0)
         PictureBox3.BackColor = Color.FromArgb(0, 0, 0)
+    End Sub
+
+    Private Sub Button6_Click_1(sender As Object, e As EventArgs) Handles Button6.Click
+        ImageRecogniziton()
+    End Sub
+
+    Private Sub Button7_Click(sender As Object, e As EventArgs) Handles Button7.Click
+        Dim currentDirectory As String = Directory.GetCurrentDirectory()
+
+        ' Specify the directory name where the grayscale template images are stored
+        Dim templateDirectory As String = currentDirectory
+
+        ' Get all PNG files in the template directory
+        Dim templateFiles As String() = Directory.GetFiles(templateDirectory, "*.png")
+
+        Dim goblinTemplates As New List(Of Bitmap)()
+
+        ' Load grayscale template images into the list
+        For Each templateFile As String In templateFiles
+            Dim templateImage As Bitmap = New Bitmap(templateFile)
+            goblinTemplates.Add(templateImage)
+        Next
+
+        ' Convert the image to grayscale
+        Dim gameScreenshot As Bitmap = CType(PictureBox1.Image, Bitmap)
+        Dim capturedGrayImage As Bitmap = ConvertToGrayscale(gameScreenshot)
+
+        Dim matchedTemplate As Bitmap = FindBestMatch(capturedGrayImage, goblinTemplates)
+
+        If matchedTemplate IsNot Nothing Then
+            ' A matching template was found
+            ' Perform further actions or interactions with the identified goblin
+            MsgBox("Goblin Found")
+
+        Else
+            ' No matching template was found
+            ' Handle the case when no goblin is detected
+            MsgBox("Goblin Found")
+        End If
+
+    End Sub
+
+    ' Function to perform template matching and find the best match
+    Private Function FindBestMatch(ByVal capturedImage As Bitmap, ByVal templates As List(Of Bitmap)) As Bitmap
+        Dim matchScoreThreshold As Double = 0.2 ' Adjust this threshold as needed
+
+        Dim maxMatchScore As Double = 0
+        Dim bestMatchIndex As Integer = -1
+
+        For i As Integer = 0 To templates.Count - 1
+            Dim template As Bitmap = templates(i)
+
+            ' Convert the captured image and template to a supported pixel format
+            capturedImage = capturedImage.Clone(New Rectangle(0, 0, capturedImage.Width, capturedImage.Height), PixelFormat.Format24bppRgb)
+            template = template.Clone(New Rectangle(0, 0, template.Width, template.Height), PixelFormat.Format24bppRgb)
+            MsgBox("test1")
+            ' Create a new ExhaustiveTemplateMatching instance
+            Dim tm As New ExhaustiveTemplateMatching(matchScoreThreshold)
+            MsgBox("test2")
+            ' Find the best match between the captured image and the template
+            Dim match As TemplateMatch() = tm.ProcessImage(capturedImage, template)
+
+            ' Check if the match score exceeds the threshold and is the highest so far
+            If match.Length > 0 AndAlso match(0).Similarity > maxMatchScore Then
+                maxMatchScore = match(0).Similarity
+                bestMatchIndex = i
+            End If
+        Next
+        MsgBox("test3")
+
+        ' Check if a match above the threshold was found
+        If bestMatchIndex >= 0 Then
+            ' Return the best matching template image
+            Return templates(bestMatchIndex)
+        Else
+            ' No match above the threshold was found
+            Return Nothing
+        End If
+    End Function
+
+    Dim SRclb As IO.StreamReader
+
+    Private Sub LoadPresets_Click(sender As Object, e As EventArgs) Handles LoadPresets.Click
+        Dim currentDirectory As String = Directory.GetCurrentDirectory()
+        Dim presetsFilePath As String = currentDirectory & "\Presets.txt"
+
+        If File.Exists(presetsFilePath) Then
+            CheckedListBox1.Items.AddRange(File.ReadAllLines(presetsFilePath))
+        Else
+            Dim openFileDialog As New OpenFileDialog()
+            openFileDialog.Title = "Select Presets File"
+            openFileDialog.Filter = "Text Files (*.txt)|*.txt"
+
+            If openFileDialog.ShowDialog() = DialogResult.OK Then
+                presetsFilePath = openFileDialog.FileName
+                CheckedListBox1.Items.AddRange(File.ReadAllLines(presetsFilePath))
+            Else
+                ' User cancelled file selection, handle accordingly
+                Return
+            End If
+        End If
+
+
+    End Sub
+
+    Private Sub CheckedListBox1_ItemCheck(sender As Object, e As ItemCheckEventArgs) Handles CheckedListBox1.ItemCheck
+        Dim selectedItem As String = CheckedListBox1.Items(e.Index).ToString()
+        Dim itemParts As String() = selectedItem.Split(";"c)
+
+        If e.NewValue = CheckState.Checked Then ' Only process when the item is being checked, not unchecked
+            ' Uncheck all other items
+            For i As Integer = 0 To CheckedListBox1.Items.Count - 1
+                If i <> e.Index Then
+                    CheckedListBox1.SetItemChecked(i, False)
+                End If
+            Next
+
+            ' Extract Colour Id's from the list box
+            If itemParts.Length = 3 Then
+                Dim name As String = itemParts(0).Trim()
+                Dim color1 As String = itemParts(1).Trim()
+                Dim color2 As String = itemParts(2).Trim()
+
+                ' Convert Color1 and Color2 to ARGB colors
+                Dim argbColor1 As Color = ConvertToArgbColor(color1)
+                Dim argbColor2 As Color = ConvertToArgbColor(color2)
+
+                ' Use the extracted variables as needed
+                Label3.ForeColor = argbColor1
+                PictureBox2.BackColor = argbColor1
+                Label4.ForeColor = argbColor2
+                PictureBox3.BackColor = argbColor2
+
+                MsgBox("Preset has been set to target: " & name)
+            End If
+        End If
+    End Sub
+    Function ConvertToArgbColor(colorString As String) As Color
+        Dim components As String() = colorString.Split(","c)
+        Dim alpha As Integer = 255
+        Dim red As Integer = Integer.Parse(components(0).Trim())
+        Dim green As Integer = Integer.Parse(components(1).Trim())
+        Dim blue As Integer = Integer.Parse(components(2).Trim())
+        Return Color.FromArgb(alpha, red, green, blue)
+    End Function
+
+    Private Sub TextBox1_TextChanged(sender As Object, e As EventArgs) Handles TextBox1.TextChanged
+
     End Sub
 End Class
